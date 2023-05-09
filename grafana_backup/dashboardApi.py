@@ -409,6 +409,10 @@ def set_user_role(user_id, role, grafana_url, http_post_headers, verify_ssl, cli
     r = requests.patch(url, headers=http_post_headers, data=json_payload, verify=verify_ssl, cert=client_cert)
     return (r.status_code, r.json())
 
+def set_user_permissions(user_id, is_admin, grafana_url, http_post_headers, verify_ssl, client_cert, debug):
+    json_payload = json.dumps({'isGrafanaAdmin': is_admin})
+    return send_grafana_put('{0}/api/admin/users/{1}/permissions'.format(grafana_url, user_id), json_payload, http_post_headers, verify_ssl, client_cert,
+                            debug)
 
 def get_user(id, grafana_url, http_get_headers, verify_ssl=False, client_cert=None, debug=True):
     return send_grafana_get('{0}/api/users/{1}'.format(grafana_url, id),

@@ -1,5 +1,5 @@
 import json
-from grafana_backup.dashboardApi import create_user, add_user_to_org
+from grafana_backup.dashboardApi import create_user, add_user_to_org, set_user_permissions, set_user_role
 
 
 def main(args, settings, file_path):
@@ -22,8 +22,13 @@ def main(args, settings, file_path):
 
         result = create_user(json.dumps(user), grafana_url, http_post_headers_basic_auth, verify_ssl, client_cert, debug)
         print('create user "{0}" response status: {1}, msg: {2} \n'.format(user.get('login', ''), result[0], result[1]))
+        new_id = result[1].get('id')
 
         if result[0] == 200:
+            if user.get('isGrafanaAdmin', False):
+                result = set_user_permissions(new_id, True, grafana_url, http_post_headers_basic_auth, verify_ssl, client_cert, debug)
+                print('set user permissions "{0}" response status: {1}, msg: {2}\n'.format(user.get('login', ''), result[0], result[1]))
+
             for org in user.get('orgs', []):
                 org_payload = {
                     "loginOrEmail": user.get('login', 'email'),
@@ -31,5 +36,9 @@ def main(args, settings, file_path):
                 }
                 result = add_user_to_org(org.get('orgId'), json.dumps(org_payload), grafana_url, http_post_headers_basic_auth, verify_ssl, client_cert, debug)
                 print('add user "{0}" to org: {1} response status: {2}, msg: {3}'.format(user.get('login', ''), org.get('name', ''), result[0], result[1]))
+                if result[0] == 409 and org.get('orgId') == 1:
+                    result = set_user_role(new_id, org_payload.get('role') , grafana_url, http_post_headers_basic_auth, verify_ssl, client_cert, debug)
+                    print('update role for user "{0}" in org: {1} response status: {2}, msg: {3}'.format(user.get('login', ''), org.get('name', ''), result[0], result[1]))
+
     else:
         print('[ERROR] Restoring users needs to set GRAFANA_ADMIN_ACCOUNT and GRAFANA_ADMIN_PASSWORD first. \n')
